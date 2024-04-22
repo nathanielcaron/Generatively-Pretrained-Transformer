@@ -1,7 +1,7 @@
-import os
 import torch
 import torch.nn as nn
 from torch.nn import functional
+import utils
 
 # --- Hyper Parameters ---
 batch_size = 32 # Number of independent sequences processed in parallel
@@ -15,20 +15,7 @@ evaluation_iterations = 200
 
 torch.manual_seed(1337)
 
-def read_data(directory):
-    contents = ''
-
-    for filename in os.listdir(directory):
-        filepath = os.path.join(directory, filename)
-
-        if os.path.isfile(filepath):
-            with open(filepath, 'r', encoding='utf-8') as file:
-                content = file.read()
-                contents += content
-
-    return contents
-
-contents = read_data('Data')
+contents = utils.read_data('Data')
 
 # Unique characters in data
 unique_characters = sorted(list(set(contents)))
@@ -47,21 +34,12 @@ encode = lambda s: [stoi[c] for c in s]
 decode = lambda l: ''.join([itos[i] for i in l])
 
 data = torch.tensor(encode(contents), dtype=torch.long)
-# First 90% of data is training data, last 10% is validation data
+
+# First 90% of data is for training
 n = int(0.9*len(data))
 training_data = data[:n]
+# Last 10% of data is for validation
 validation_data = data[n:]
-
-# Load data
-def get_batch(split):
-    # Batch of data for inputs x and targets y
-    data = training_data if split == 'train' else validation_data
-    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i+block_size] for i in ix])
-    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    x, y = x.to(device), y.to(device)
-
-    return x, y
 
 @torch.no_grad()
 def estimate_loss():
@@ -70,7 +48,8 @@ def estimate_loss():
     for split in ['train', 'val']:
         losses = torch.zeros(evaluation_iterations)
         for k in range(evaluation_iterations):
-            X, Y = get_batch(split)
+            data = training_data if split == 'train' else validation_data
+            X, Y = utils.get_batch(data, batch_size, block_size, device)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
@@ -122,14 +101,13 @@ m = model.to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 for iter in range(max_iterations):
-
-    # Evaluate the loss on trining and validation sets
+    # Evaluate the loss on training and validation sets
     if iter % evaluation_interval == 0:
         losses = estimate_loss()
-        print(f"step {iter}: training loss {losses['train']:.4f}, validation loss {losses['val']:.4f}")
+        print(f"Step {iter}: training loss {losses['train']:.4f}, validation loss {losses['val']:.4f}")
 
     # Sample a batch of data
-    xb, yb = get_batch('train')
+    xb, yb = utils.get_batch(training_data, batch_size, block_size, device)
 
     # Evaluate the loss
     logits, loss = model(xb, yb)
