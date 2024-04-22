@@ -61,7 +61,7 @@ def estimate_loss():
     return out
 
 class Head(nn.Module):
-    """ one head of self-attention """
+    """ One head of self-attention """
 
     def __init__(self, head_size):
         super().__init__()
@@ -90,7 +90,7 @@ class Head(nn.Module):
         return out
 
 class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
+    """ Multiple heads of self-attention in parallel """
 
     def __init__(self, num_heads, head_size):
         super().__init__()
@@ -105,7 +105,7 @@ class MultiHeadAttention(nn.Module):
         return out
 
 class FeedFoward(nn.Module):
-    """ a simple linear layer followed by a non-linearity """
+    """ A simple linear layer followed by a non-linearity """
 
     def __init__(self, n_embd):
         super().__init__()
